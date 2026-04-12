@@ -76,6 +76,7 @@ async def add_payment(db_path: str, telegram_id: int, amount: float) -> None:
 async def add_subscription(db_path: str, telegram_id: int, plan_name: str, end_date: str) -> None:
     """
     Adds or updates a subscription record in the database.
+    end_date should be in format 'YYYY-MM-DD HH:MM:SS'
     """
     async with aiosqlite.connect(db_path) as db:
         # Check if user already has this specific plan to update it, otherwise insert new
@@ -98,6 +99,44 @@ async def add_subscription(db_path: str, telegram_id: int, plan_name: str, end_d
         
         await db.commit()
         print(f"Subscription '{plan_name}' for {telegram_id} set until {end_date}.")
+
+
+async def get_user_subscription(db_path: str, telegram_id: int) -> Optional[str]:
+    """
+    Returns the end_date of the user's subscription if it is still active.
+    """
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    async with aiosqlite.connect(db_path) as db:
+        async with db.execute(
+            "SELECT end_date FROM subscriptions WHERE telegram_id = ? AND end_date > ?",
+            (telegram_id, now)
+        ) as cursor:
+            row = await cursor.fetchone()
+            return row[0] if row else None
+
+
+async def get_expired_subscriptions(db_path: str) -> list[int]:
+    """
+    Returns a list of telegram_id users whose subscription has expired.
+    """
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    async with aiosqlite.connect(db_path) as db:
+        async with db.execute(
+            "SELECT telegram_id FROM subscriptions WHERE end_date <= ?",
+            (now,)
+        ) as cursor:
+            rows = await cursor.fetchall()
+            return [row[0] for row in rows]
+
+
+async def delete_subscription(db_path: str, telegram_id: int) -> None:
+    """
+    Deletes all subscriptions for a specific user.
+    """
+    async with aiosqlite.connect(db_path) as db:
+        await db.execute("DELETE FROM subscriptions WHERE telegram_id = ?", (telegram_id,))
+        await db.commit()
+        print(f"Subscription deleted for user {telegram_id}.")
 
 
 async def get_statistics(db_path: str) -> tuple[int, float]:
@@ -124,23 +163,3 @@ async def get_all_users(db_path: str) -> list[int]:
         async with db.execute("SELECT telegram_id FROM users") as cursor:
             rows = await cursor.fetchall()
             return [row[0] for row in rows]
-
-
-if __name__ == "__main__":
-    import asyncio
-
-    async def main():
-        db_name = "test_bot.db"
-        # Initialize
-        await init_db(db_name)
-
-        # Test adding user
-        await add_user(db_name, 123456789)
-
-        # Test adding payment
-        await add_payment(db_name, 123456789, 500.0)
-
-        # Test issuing subscription (e.g., "Premium" for 30 days)
-        await add_subscription(db_name, 123456789, "Premium", 30)
-
-    asyncio.run(main())
