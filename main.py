@@ -12,7 +12,8 @@ from aiogram.types import (
     KeyboardButton,
     WebAppInfo, 
     LabeledPrice, 
-    PreCheckoutQuery
+    PreCheckoutQuery,
+    BotCommand
 )
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
@@ -63,6 +64,15 @@ async def on_startup(bot: Bot):
     Инициализирует базу данных и запускает фоновые задачи.
     """
     await init_db(DB_PATH)
+    
+    # Регистрация команд бота в меню команд (кнопка меню Telegram)
+    commands = [
+        BotCommand(command="start", description="Начать / Приветствие"),
+        BotCommand(command="profile", description="Проверить подписку"),
+        BotCommand(command="admin", description="Панель администратора"),
+    ]
+    await bot.set_my_commands(commands)
+    
     # Запуск фоновой задачи проверки подписок
     asyncio.create_task(check_expirations(bot, CHANNEL_ID))
     logging.info("Database initialized and background tasks started...")
