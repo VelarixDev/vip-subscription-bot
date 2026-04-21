@@ -24,6 +24,7 @@ from database import (
     get_statistics, 
     get_all_users, 
     add_subscription,
+    add_payment_simple,
     get_user_subscription,
     get_expired_subscriptions,
     delete_subscription
@@ -319,6 +320,10 @@ async def successful_payment_handler(message: types.Message):
                 f"⚠️ Не удалось сгенерировать персональную ссылку. "
                 f"Пожалуйста, вступите в канал вручную: https://t.me/Ockynua"
             )
+
+        # Записываем платеж в базу данных
+        amount_dollars = message.successful_payment.total_amount / 100
+        await add_payment_simple(message.from_user.id, amount_dollars, DB_PATH)
 
         await message.answer(response_text)
 

@@ -73,6 +73,14 @@ async def add_payment(db_path: str, telegram_id: int, amount: float) -> None:
         print(f"Payment of {amount} recorded for user {telegram_id}.")
 
 
+async def add_payment_simple(telegram_id: int, amount: float, db_path: str = "database.db") -> None:
+    """
+    Асинхронная функция для записи платежа в базу данных.
+    Простая обертка для add_payment с параметрами по умолчанию.
+    """
+    await add_payment(db_path, telegram_id, amount)
+
+
 async def add_subscription(db_path: str, telegram_id: int, plan_name: str, end_date: str) -> None:
     """
     Adds or updates a subscription record in the database.
